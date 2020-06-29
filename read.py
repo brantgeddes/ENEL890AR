@@ -1,4 +1,4 @@
-import smbus, time, os
+import smbus, time, os, traceback
 from message import create_msg
 
 bus = smbus.SMBus(1)
@@ -17,33 +17,25 @@ try:
         print("Setting Config register")
         bus.write_i2c_block_data(DEVICE_ADDRESS, 0x01, [0x44, 0x43]) 
 except Exception as e:
-    print(e)
+    print(traceback.format_exc())
 
 try:
     fifo = os.open(PIPE_NAME, os.O_WRONLY)
 except Exception as e:
-    print(e)
+    print(traceback.format_exc())
     exit()
 
 try:
     next_read = time.time() + TIME_PERIOD
-    i = 0
-    msg = b''
     while True:
         if time.time() > next_read:
             next_read = time.time() + TIME_PERIOD
             conversion = bus.read_i2c_block_data(DEVICE_ADDRESS, 0x00, 2)
-            msg += conversion[0].to_bytes(1, byteorder='big')
-            msg += conversion[1].to_bytes(1, byteorder='big')
-            i += 1
-            
-            if i == N:
-                os.write(fifo, msg)
-                msg = b''
-                i = 0
+            msg = conversion[0].to_bytes(1, byteorder='big') + conversion[1].to_bytes(1, byteorder='big')
+            os.write(fifo, msg)
 
 except Exception as e:
-    print(e)
+    print(traceback.format_exc())
 finally:
     os.close(fifo)
 
