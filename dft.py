@@ -1,11 +1,22 @@
 from message import decode_msg_size
-import os, select, math, numpy as np
+import os, select, math, traceback, numpy as np
+
+# Target sample rate
+sample_rate = 490
+# Batch size
+N = 64
+# Queue Named Pipe
+PIPE_NAME='ADC_READ_PIPE'
 
 def get_message(fifo: int) -> str:
-    msg_size_bytes = os.read(fifo, 4)
-    msg_size = decode_msg_size(msg_size_bytes)
-    msg_content = os.read(fifo, msg_size).decode("utf8")
-    return msg_content
+    frame = os.read(fifo, 2 * N)
+    msg = [ x for x in frame ]#[ int.from_bytes(x, byteorder='little') for x in msg ]
+    data = np.array([])
+    print(len(msg))
+    for i in range(0, N * 2, 2):
+        data = np.append(data, msg[i] + msg[i + 1] * 16**2)
+    print(len(data))
+    return data
 
 def dft(batch):
     # Empty arrays
@@ -26,27 +37,24 @@ def dft(batch):
 
     return (real, imag)
 
-# Target sample rate
-sample_rate = 490
-# Batch size
-N = 64
-# Queue Named Pipe
-PIPE_NAME='ADC_READ_PIPE'
-os.mkfifo(PIPE_NAME)
+try:
+    os.mkfifo(PIPE_NAME)
+except:
+    print("Pipe Exists")
 
 try:
     fifo = os.open(PIPE_NAME, os.O_RDONLY)
-except:
-    print(e)
+except Exception as e:
+    print(traceback.format_exc())
     exit()
 
 try:
     while True:
         if fifo:
-            batch = fifo.get_message(fifo)
+            batch = get_message(fifo)
             batch = dft(batch)
-            print(batch)
-except:
-    print(e)
+            np.savetxt('dft.csv', batch, delimiter=",")
+except Exception as e:
+    print(traceback.format_exc())
 finally:
     os.close(fifo)
