@@ -24,19 +24,20 @@ export class HomePage implements OnInit {
       this.http.get('http://207.195.41.157/api/samples').subscribe((result: any) => {
         this.samples = result.values;
         const data = this.samples.map((value, index) => ({ x: index, y: 3.3 * (parseFloat(value) / 4095) }));
-        this.draw('#samples-container', data);
+        this.draw('#samples-container', data, 'Amplitude', 'Time');
       });
       this.http.get('http://207.195.41.157/api/dft').subscribe((result: any) => {
         this.real = result.real;
         this.imag = result.imag;
         this.calcPolar();
+        console.log(this.amplitude);
         const data = this.amplitude.map((value, index) => ({ x: 245 * (index / 64), y: 3.3 * (parseFloat(value) / 4095) }));
-        this.draw('#dft-container', data);
+        this.draw('#dft-container', data, 'Amplitude', 'Frequency');
       });
     });
   }
 
-  draw(container, data) {
+  draw(container, data, ylabel, xlabel) {
     // set the dimensions and margins of the graph
     const margin = {top: 10, right: 30, bottom: 30, left: 60};
     const width = 460 - margin.left - margin.right;
@@ -77,6 +78,23 @@ export class HomePage implements OnInit {
         .x(d => x(d.x) )
         .y(d => y(d.y) )
         );
+
+    // text label for the x axis
+    svg.append('text')
+      .attr('transform',
+            'translate(' + (width / 2) + ' ,' + (height + margin.top + 20) + ')')
+      .style('text-anchor', 'middle')
+      .text(xlabel);
+
+    // text label for the y axis
+    svg.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', 0 - margin.left)
+        .attr('x', 0 - (height / 2))
+        .attr('dy', '1em')
+        .style('text-anchor', 'middle')
+        .text(ylabel);
+
   }
 
   calcPolar() {
