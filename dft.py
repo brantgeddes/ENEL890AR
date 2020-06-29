@@ -1,5 +1,6 @@
 from message import decode_msg_size
 import os, select, math, traceback, numpy as np
+import sqlite3
 
 # Target sample rate
 sample_rate = 490
@@ -8,14 +9,14 @@ N = 64
 # Queue Named Pipe
 PIPE_NAME='ADC_READ_PIPE'
 
+conn = sqlite3.connect('data.db')
+
 def get_message(fifo: int) -> str:
     frame = os.read(fifo, 2 * N)
     msg = [ x for x in frame ]#[ int.from_bytes(x, byteorder='little') for x in msg ]
     data = np.array([])
-    print(len(msg))
     for i in range(0, N * 2, 2):
         data = np.append(data, msg[i] + msg[i + 1] * 16**2)
-    print(len(data))
     return data
 
 def dft(batch):
@@ -51,9 +52,16 @@ except Exception as e:
 try:
     while True:
         if fifo:
+            conn.execute('delete from samples')
             batch = get_message(fifo)
-            batch = dft(batch)
-            np.savetxt('dft.csv', batch, delimiter=",")
+            for i,x in enumerate(batch):
+                conn.execute('insert into samples (sample, value) VALUES (%d, %f)' % (i,x))
+            conn.commit()
+            real, imag = dft(batch)
+            conn.execute('delete from dft')
+            for i, (x,y) in enumerate(zip(real, imag)):
+                conn.execute('insert into dft (bucket, real, imag) VALUES (%d, %f, %f)' % (i,x,y))
+            conn.commit()
 except Exception as e:
     print(traceback.format_exc())
 finally:
