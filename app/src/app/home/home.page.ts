@@ -23,7 +23,7 @@ export class HomePage implements OnInit {
     const sub = timer(0, 1000).subscribe((x) => {
       this.http.get('http://207.195.41.157/api/samples').subscribe((result: any) => {
         this.samples = result.values;
-        const data = this.samples.map((value, index) => ({ x: index, y: 3.3 * (parseFloat(value) / 4095) }));
+        const data = this.samples.map((value, index) => ([ index, 3.3 * (parseFloat(value) / 4095) ]));
         this.draw('#samples-container', data, 'Amplitude', 'Time');
       });
       this.http.get('http://207.195.41.157/api/dft').subscribe((result: any) => {
@@ -31,7 +31,7 @@ export class HomePage implements OnInit {
         this.imag = result.imag;
         this.calcPolar();
         console.log(this.amplitude);
-        const data = this.amplitude.map((value, index) => ({ x: 245 * (index / 64), y: 3.3 * (parseFloat(value) / 4095) }));
+        const data = this.amplitude.map((value, index) => ([ 245 * (index / 64), 3.3 * (parseFloat(value) / 4095) ]));
         this.draw('#dft-container', data, 'Amplitude', 'Frequency');
       });
     });
@@ -54,7 +54,7 @@ export class HomePage implements OnInit {
 
     // Add X axis --> it is a date format
     const x = d3.scaleLinear()
-      .domain([0, d3.max<[number, number], number>(data, d => d.x)])
+      .domain([0, d3.max<[number, number], number>(data, d => d[0])])
       .range([0, width]);
 
     svg.append('g')
@@ -63,7 +63,7 @@ export class HomePage implements OnInit {
 
     // Add Y axis
     const y = d3.scaleLinear()
-      .domain([0, d3.max<[number, number], number>(data, d => d.y)])
+      .domain([0, d3.max<[number, number], number>(data, d => d[1])])
       .range([ height, 0 ]);
     svg.append('g')
       .call(d3.axisLeft(y));
@@ -75,8 +75,8 @@ export class HomePage implements OnInit {
       .attr('stroke', 'steelblue')
       .attr('stroke-width', 1.5)
       .attr('d', d3.line()
-        .x(d => x(d.x) )
-        .y(d => y(d.y) )
+        .x(d => x(d[0]) )
+        .y(d => y(d[1]) )
         );
 
     // text label for the x axis
