@@ -12,12 +12,9 @@ PIPE_NAME='ADC_READ_PIPE'
 conn = sqlite3.connect('data.db')
 
 def get_message(fifo: int) -> str:
-    frame = os.read(fifo, 2 * N)
+    frame = os.read(fifo, 1000)
     msg = [ x for x in frame ]#[ int.from_bytes(x, byteorder='little') for x in msg ]
-    msg = [(3.3 * x / 4095) for x in msg ]
-    data = np.array([])
-    for i in range(0, len(msg), 2):
-        data = np.append(data, msg[i + 1] + msg[i] * 16**2)
+    data = np.array([(3.3 * x / 2047) for x in msg ])
     return data
 
 def dft(batch):

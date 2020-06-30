@@ -31,7 +31,9 @@ try:
         if time.time() > next_read:
             next_read = time.time() + TIME_PERIOD
             conversion = bus.read_i2c_block_data(DEVICE_ADDRESS, 0x00, 2)
-            msg = conversion[0].to_bytes(1, byteorder='big') + conversion[1].to_bytes(1, byteorder='big')
+            conversion = (conversion[0]<<4) | (conversion[1]>>4)
+            print(conversion)
+            msg = conversion.to_bytes(2, byteorder='big')
             os.write(fifo, msg)
 
 except Exception as e:
