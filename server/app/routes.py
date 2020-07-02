@@ -16,9 +16,10 @@ def samples():
 @app.route('/dft')
 @cross_origin()
 def dft():
-    real = []
-    imag = []
-    for row in conn.execute('select real, imag from dft'):
-        real.append(row[0])
-        imag.append(row[1])
-    return jsonify({ "real": real, "imag": imag })
+    amplitude = []
+    phase = []
+    for row in conn.execute('select amplitude, phase from spectrum'):
+        amplitude.append(row[0])
+        phase.append(row[1])
+    amplitude = amplitude[:len(amplitude)//2]
+    return jsonify({ "amplitude": amplitude, "phase": phase })

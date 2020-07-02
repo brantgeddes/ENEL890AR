@@ -1,21 +1,28 @@
 from message import decode_msg_size
-import os, select, math, traceback, numpy as np
+import os, select, math, traceback, time, numpy as np
 import sqlite3
+from cmath import exp, pi, atan
 
 # Target sample rate
 sample_rate = 490
 # Batch size
-N = 64
+N = 8
 # Queue Named Pipe
 PIPE_NAME='ADC_READ_PIPE'
 
 conn = sqlite3.connect('data.db')
 
 def get_message(fifo: int) -> str:
-    frame = os.read(fifo, 1000)
-    msg = [ x for x in frame ]#[ int.from_bytes(x, byteorder='little') for x in msg ]
-    data = np.array([(3.3 * x / 2047) for x in msg ])
-    return data
+    frame = os.read(fifo, 2)
+    return 3.3 * int.from_bytes(frame, byteorder="big") / 2047
+
+def fft(x):
+    N = len(x)
+    if N <= 1: return x
+    even = fft(x[0::2])
+    odd = fft(x[1::2])
+    T = [exp(-2j*pi*k/N)*odd[k] for k in range(N//2)]
+    return [even[k] + T[k] for k in range(N//2)] + [even[k] - T[k] for k in range(N//2)]
 
 def dft(batch):
     # Empty arrays
@@ -48,26 +55,32 @@ except Exception as e:
     exit()
 
 try:
-    batch = np.array([])
+    batch = np.array([0]*N)
     i = 0
     while True:
         if fifo:
-            new_batch = get_message(fifo)
-            i += len(new_batch)
-            batch = np.append(batch, new_batch)
-            if i >= N:
-                batch = batch[0:64]
-                conn.execute('delete from samples')
-                for i,x in enumerate(batch):
-                    conn.execute('insert into samples (sample, value) VALUES (%d, %f)' % (i,x))
-                conn.commit()
-                real, imag = dft(batch)
-                conn.execute('delete from dft')
-                for i, (x,y) in enumerate(zip(real, imag)):
-                    conn.execute('insert into dft (bucket, real, imag) VALUES (%d, %f, %f)' % (i,x,y))
-                conn.commit()
-                batch = []
-                i = 0
+            new_value = get_message(fifo)
+            batch = np.append(batch[1:], new_value)
+            print(batch)
+            """
+            conn.execute('delete from samples')
+            for i,x in enumerate(batch):
+                conn.execute('insert into samples (sample, value) VALUES (%d, %f)' % (i,x))
+            conn.commit()
+            """
+            """
+            start = time.time()
+            spectrum = fft(batch)
+            amplitude = [(x.real**2 + x.imag**2)**(1/2) for x in spectrum]
+            """
+            """
+            conn.execute('delete from spectrum')
+            for i, (x,y) in enumerate(zip(amplitude, phase)):
+                conn.execute('insert into spectrum (bucket, amplitude, phase) VALUES (%d, %f, %f)' % (i,x,y))
+            conn.commit()
+            """
+            #np.savetxt('fft.csv', batch, delimiter=",")
+
 except Exception as e:
     print(traceback.format_exc())
 finally:
