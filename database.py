@@ -22,7 +22,8 @@ class Database:
 
     def run(self, pipeline):
         try:
-            pass
+            while not pipeline.should_exit():
+                pipeline.consume()
         except Exception as e:
             logging.exception(traceback.format_exc())
 

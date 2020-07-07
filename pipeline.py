@@ -17,13 +17,14 @@ class Pipeline:
     def emit(self, signal, spectrum):
         self.signal = signal
         self.spectrum = spectrum
+        self.sample_event.set()
 
     def consume(self):
         start = time.time()
         self.sample_event.clear()
         self.sample_event.wait()
-        print(time.time() - start)
-        return self.sample
+        print(time.time() - start, self.signal)
+        return self.signal
     
     def check(self):
         return self.sample != None
