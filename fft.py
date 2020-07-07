@@ -13,7 +13,7 @@ class FFT:
             batch = collections.deque(maxlen=16)
             start = time.time()
             while not pipeline.should_exit():
-                print(pipeline.signal, pipeline.spectrum)
+                pass
                 #batch.append(pipeline.consume())
                 #batch = pipeline.consume()
                 #print(batch)

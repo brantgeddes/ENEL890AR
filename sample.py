@@ -6,19 +6,20 @@ import timeit
 bus = smbus.SMBus(1)
 
 class Sample:
+    N = 32
     PERIOD = 1/920
     DEVICE_ADDRESS = 0x48
     sin_values = [ 0, 0.5235, 0.7854, 1.0174, 1.5708, 3.1416, 1.5708, 1.0174, 0.7854, 0.5235, 0, -0.5235, -0.7854, -1.0174, -1.5708, -3.1416, -1.5708, -1.0174, -0.7854, -0.5235 ]
-    batch = [0] * 16
     def __init__(self):
         try:
-            config = bus.read_i2c_block_data(DEVICE_ADDRESS, 0x01, 2)
+            self.batch = [0] * self.N
+            config = bus.read_i2c_block_data(self.DEVICE_ADDRESS, 0x01, 2)
             if config[0] == 68 and config[1] == 67:
                 print(config)
                 print("Config register set")
             else:
                 print("Setting Config register")
-                bus.write_i2c_block_data(DEVICE_ADDRESS, 0x01, [0x44, 0x43]) 
+                bus.write_i2c_block_data(self.DEVICE_ADDRESS, 0x01, [0x44, 0x43]) 
         except Exception as e:
             logging.exception(traceback.format_exc())
 
@@ -29,12 +30,13 @@ class Sample:
                 if time.time() > current_time + self.PERIOD:
                     current_time = time.time()
                     self.pipeline = pipeline
-                    conversion = bus.read_i2c_block_data(DEVICE_ADDRESS, 0x00, 2)
+                    conversion = bus.read_i2c_block_data(self.DEVICE_ADDRESS, 0x00, 2)
                     conversion = (conversion[0]<<4) | (conversion[1]>>4)
-                    self.batch.append(conversion.to_bytes(2, byteorder='big'))
+                    self.batch.append(conversion)
                     self.batch.pop(0)
-                    spectrum = fft(self.batch)
-                    pipeline.emit(self.batch, fft)
+                    spectrum = self.fft(self.batch)
+                    print(self.batch)
+                    pipeline.emit(self.batch, spectrum)
         except Exception as e:
             logging.exception(traceback.format_exc())
 
