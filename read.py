@@ -3,20 +3,12 @@ from message import create_msg
 
 bus = smbus.SMBus(1)
 
-DEVICE_ADDRESS = 0x48
 TIME_PERIOD = 1/490
 N = 8
 PIPE_NAME='ADC_READ_PIPE'
 
 
 try:
-    config = bus.read_i2c_block_data(DEVICE_ADDRESS, 0x01, 2)
-    if config[0] == 68 and config[1] == 67:
-        print(config)
-        print("Config register set")
-    else:
-        print("Setting Config register")
-        bus.write_i2c_block_data(DEVICE_ADDRESS, 0x01, [0x44, 0x43]) 
 except Exception as e:
     print(traceback.format_exc())
 

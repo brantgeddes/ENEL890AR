@@ -23,15 +23,12 @@ export class HomePage implements OnInit {
     const sub = timer(0, 1000).subscribe((x) => {
       this.http.get('http://207.195.41.157/api/samples').subscribe((result: any) => {
         this.samples = result.values;
-        const data = this.samples.map((value, index) => ([ index, 3.3 * (parseFloat(value) / 4095) ]));
+        const data = this.samples.map((value, index) => ([ index, 3.3 * parseFloat(value) ]));
         this.draw('#samples-container', data, 'Amplitude', 'Time');
       });
       this.http.get('http://207.195.41.157/api/dft').subscribe((result: any) => {
-        this.real = result.real;
-        this.imag = result.imag;
-        this.calcPolar();
-        console.log(this.amplitude);
-        const data = this.amplitude.map((value, index) => ([ 245 * (index / 64), 3.3 * (parseFloat(value) / 4095) ]));
+        this.amplitude = result.amplitude;
+        const data = this.amplitude.map((value, index) => ([ 245 * (index / 64), 3.3 * parseFloat(value) ]));
         this.draw('#dft-container', data, 'Amplitude', 'Frequency');
       });
     });
@@ -69,15 +66,15 @@ export class HomePage implements OnInit {
       .call(d3.axisLeft(y));
 
     // Add the line
-    svg.append('path')
-      .datum(data)
-      .attr('fill', 'none')
-      .attr('stroke', 'steelblue')
-      .attr('stroke-width', 1.5)
-      .attr('d', d3.line()
-        .x(d => x(d[0]) )
-        .y(d => y(d[1]) )
-        );
+    svg.append('g')
+      .selectAll()
+      .data(data)
+      .enter()
+      .append('circle')
+      .attr('fill', 'black')
+      .attr('cx', (d) => x(d[0]))
+      .attr('cy', (d) => y(d[1]))
+      .attr('r', 2);
 
     // text label for the x axis
     svg.append('text')
